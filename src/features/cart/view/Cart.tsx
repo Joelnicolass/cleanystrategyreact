@@ -14,11 +14,13 @@ import {
   CreditCardMethod,
   PayPalMethod,
 } from "../../../core/infraestructure/driven-adapters/payment.services";
+import useRole from "../../../core/presentation/hooks/useRole";
 
 type Props = {};
 
 const Cart = (props: Props) => {
-  const role = useSelector((state: RootState) => state.userReducer.user?.role);
+  // se puede crear un hook para obtener el role, y asi no tener que usar el useSelector
+  const { role, isRolePermitted } = useRole();
 
   const [visa, setVisa] = useState<CreditCard>(
     new CreditCard("23fd3", "Visa", "12312-23423-12312")
@@ -61,19 +63,34 @@ const Cart = (props: Props) => {
 
       <button
         onClick={() => {
-          // estp es un ejemplo de como se usa el servicio de pago con strategy pattern
-          const creditCardMethod = new CreditCardMethod(visa);
           const paypalMethod = new PayPalMethod(payPal);
-
-          // esto se podria hacer tambien con hocs
-          const payment = new PaymentStrategy(
-            role === Role.ADMIN ? creditCardMethod : paypalMethod
-          );
+          const payment = new PaymentStrategy(paypalMethod);
+          payment.pay();
+        }}
+      >
+        pagar con PayPal
+      </button>
+      <button
+        onClick={() => {
+          const creditCardMethod = new CreditCardMethod(visa, role);
+          const payment = new PaymentStrategy(creditCardMethod);
 
           payment.pay();
         }}
       >
-        pagar
+        pagar con tarjeta de credito
+      </button>
+
+      <button
+        disabled={!isRolePermitted(Role.ADMIN)} // podes usar una funcion para determinar si se puede o no hacer algo
+        onClick={() => {
+          const creditCardMethod = new CreditCardMethod(visa, role);
+          const payment = new PaymentStrategy(creditCardMethod);
+
+          payment.pay();
+        }}
+      >
+        pagar con tarjeta de credito
       </button>
     </div>
   );
